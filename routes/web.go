@@ -81,6 +81,24 @@ func RegisterRoutes(route *gin.Engine) {
 		fileRoutes.GET("/:key/:filename", fileController.ServeFile)
 	}
 
+	// KYC Routes (protected by AuthMiddleware)
+	kycService := services.NewKycService()
+	kycController := controllers.NewKycController(kycService)
+	kycRoutes := route.Group("/kyc", middleware.AuthMiddleware())
+	{
+		// Base64 upload endpoints
+		kycRoutes.POST("/upload-id-card", kycController.UploadIdCard) // Upload ID Card (base64)
+		kycRoutes.POST("/upload-selfie", kycController.UploadSelfie)  // Upload Selfie (base64)
+
+		// File upload endpoints
+		kycRoutes.POST("/upload-id-card-file", kycController.UploadIdCardFile) // Upload ID Card (file)
+		kycRoutes.POST("/upload-selfie-file", kycController.UploadSelfieFile)  // Upload Selfie (file)
+
+		// Status and processing
+		kycRoutes.GET("/status/:reference", kycController.GetStatus)      // Get KYC Status
+		kycRoutes.POST("/process/:id", kycController.ProcessVerification) // Manual Process
+	}
+
 	// Database management routes (protected by AuthMiddleware)
 	databaseController := controllers.NewDatabaseController()
 	databaseRoutes := route.Group("/api/database")
