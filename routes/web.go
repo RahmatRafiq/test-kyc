@@ -40,27 +40,6 @@ func RegisterRoutes(route *gin.Engine) {
 		authRoutes.GET("/refresh", authController.Refresh)
 	}
 
-	// Routes untuk categories (protected by AuthMiddleware)
-	categoryService := services.CategoryService{}
-	categoryController := controllers.NewCategoryController(categoryService)
-	categoryRoutes := route.Group("/categories", middleware.AuthMiddleware()) // Protect category routes
-	{
-		categoryRoutes.GET("/", categoryController.List)         // List categories
-		categoryRoutes.GET("/:id", categoryController.Get)       // Show/Edit category (GET by ID)
-		categoryRoutes.PUT("/", categoryController.Put)          // Create/Update category
-		categoryRoutes.DELETE("/:id", categoryController.Delete) // Delete category by ID
-	}
-
-	// Routes untuk products (protected by AuthMiddleware)
-	productController := controllers.NewProductController()
-	productRoutes := route.Group("/products", middleware.AuthMiddleware()) // Protect product routes
-	{
-		productRoutes.GET("/", productController.GetAll)       // List all products
-		productRoutes.GET("/:id", productController.GetByID)   // Show/Edit product by ID
-		productRoutes.PUT("/", productController.Put)          // Create/Update product
-		productRoutes.DELETE("/:id", productController.Delete) // Delete product by ID
-	}
-
 	// Routes untuk users (protected by AuthMiddleware)
 	userService := services.UserService{}
 	userController := controllers.NewUserController(userService)
