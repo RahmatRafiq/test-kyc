@@ -52,7 +52,7 @@ func (s *OcrService) ExtractIDCardData(imagePath string) (*ExtractedData, error)
 func (s *OcrService) runTesseract(imagePath string) (string, error) {
 	// For now, we'll simulate OCR output since Tesseract might not be installed
 	// In production, you would use: tesseract imagePath stdout -l ind
-	
+
 	// Simulated OCR output for Indonesian ID card
 	simulatedText := `
 	REPUBLIK INDONESIA
@@ -73,7 +73,7 @@ func (s *OcrService) runTesseract(imagePath string) (string, error) {
 	Kewarganegaraan : WNI
 	Berlaku Hingga : SEUMUR HIDUP
 	`
-	
+
 	// In real implementation, uncomment this:
 	// cmd := exec.Command("tesseract", imagePath, "stdout", "-l", "ind")
 	// output, err := cmd.Output()
@@ -81,7 +81,7 @@ func (s *OcrService) runTesseract(imagePath string) (string, error) {
 	// 	return "", err
 	// }
 	// return string(output), nil
-	
+
 	return simulatedText, nil
 }
 

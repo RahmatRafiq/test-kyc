@@ -320,7 +320,7 @@ func (c *KycController) GetStatus(ctx *gin.Context) {
 func (c *KycController) isValidImageFile(filename string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
 	validExts := []string{".jpg", ".jpeg", ".png"}
-	
+
 	for _, validExt := range validExts {
 		if ext == validExt {
 			return true

@@ -23,15 +23,15 @@ func (s *FaceRecognitionService) CompareFaces(idCardImagePath, selfieImagePath s
 	// - OpenCV with face recognition
 	// - Face recognition Python libraries via CGO
 	// - Cloud services like AWS Rekognition, Azure Face API, etc.
-	
+
 	// For now, we'll simulate face comparison
 	score := s.simulateFaceComparison(idCardImagePath, selfieImagePath)
-	
+
 	result := &FaceMatchResult{
 		Score: score,
 		Match: score >= 0.8, // 80% threshold for match
 	}
-	
+
 	if score >= 0.8 {
 		result.Status = "match"
 	} else if score >= 0.5 {
@@ -39,7 +39,7 @@ func (s *FaceRecognitionService) CompareFaces(idCardImagePath, selfieImagePath s
 	} else {
 		result.Status = "error"
 	}
-	
+
 	return result, nil
 }
 
@@ -47,10 +47,10 @@ func (s *FaceRecognitionService) CompareFaces(idCardImagePath, selfieImagePath s
 func (s *FaceRecognitionService) simulateFaceComparison(idCardPath, selfiePath string) float64 {
 	// Simulate processing by generating a realistic score
 	// In real implementation, this would be actual face comparison
-	
+
 	// Generate a score between 0.3 and 0.95
 	baseScore := 0.3 + rand.Float64()*0.65
-	
+
 	// Add some "realistic" variation based on file names
 	if len(idCardPath) > 0 && len(selfiePath) > 0 {
 		// Simple hash-like calculation for consistency
@@ -58,7 +58,7 @@ func (s *FaceRecognitionService) simulateFaceComparison(idCardPath, selfiePath s
 		variation := (hash / 100.0) * 0.2 // ±10% variation
 		baseScore += variation - 0.1
 	}
-	
+
 	// Ensure score is within valid range
 	return math.Max(0.0, math.Min(1.0, baseScore))
 }
@@ -82,7 +82,7 @@ func (s *FaceRecognitionService) ValidateImageQuality(imagePath string) (bool, s
 	// - Blur detection
 	// - Face angle/pose
 	// - Image resolution
-	
+
 	// For simulation
 	return true, "Image quality is acceptable"
 }
@@ -108,19 +108,19 @@ func (s *FaceRecognitionService) realFaceComparison(idCardPath, selfiePath strin
 		return nil, err
 	}
 	defer rec.Close()
-	
+
 	// Process ID card image
 	idFaces, err := rec.RecognizeFile(idCardPath)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Process selfie image
 	selfieFaces, err := rec.RecognizeFile(selfiePath)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(idFaces) == 0 || len(selfieFaces) == 0 {
 		return &FaceMatchResult{
 			Score:  0.0,
@@ -128,11 +128,11 @@ func (s *FaceRecognitionService) realFaceComparison(idCardPath, selfiePath strin
 			Match:  false,
 		}, nil
 	}
-	
+
 	// Compare face descriptors
 	distance := face.Distance(idFaces[0].Descriptor, selfieFaces[0].Descriptor)
 	similarity := 1.0 - distance
-	
+
 	return &FaceMatchResult{
 		Score:  similarity,
 		Status: "match",

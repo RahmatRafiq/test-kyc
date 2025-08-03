@@ -3,13 +3,13 @@ package responses
 import "time"
 
 type KycResponse struct {
-	ID              uint                  `json:"id"`
-	UserID          uint                  `json:"user_id"`
-	Status          string                `json:"status"`
+	ID              uint                   `json:"id"`
+	UserID          uint                   `json:"user_id"`
+	Status          string                 `json:"status"`
 	ExtractedData   *ExtractedDataResponse `json:"extracted_data,omitempty"`
 	FaceMatchResult *FaceMatchResponse     `json:"face_match_result,omitempty"`
-	CreatedAt       time.Time             `json:"created_at"`
-	UpdatedAt       time.Time             `json:"updated_at"`
+	CreatedAt       time.Time              `json:"created_at"`
+	UpdatedAt       time.Time              `json:"updated_at"`
 }
 
 type ExtractedDataResponse struct {
