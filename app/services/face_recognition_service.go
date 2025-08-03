@@ -1,11 +1,15 @@
 package services
 
 import (
-	"math"
-	"math/rand"
+	"errors"
+	"fmt"
+	"image"
+	"os"
 )
 
-type FaceRecognitionService struct{}
+type FaceRecognitionService struct {
+	hogDetector *HOGDetector
+}
 
 type FaceMatchResult struct {
 	Score  float64
@@ -14,129 +18,141 @@ type FaceMatchResult struct {
 }
 
 func NewFaceRecognitionService() *FaceRecognitionService {
-	return &FaceRecognitionService{}
+	return &FaceRecognitionService{
+		hogDetector: NewHOGDetector(),
+	}
 }
 
-// CompareFaces compares two face images and returns similarity score
-func (s *FaceRecognitionService) CompareFaces(idCardImagePath, selfieImagePath string) (*FaceMatchResult, error) {
-	// In real implementation, you would use face recognition libraries like:
-	// - OpenCV with face recognition
-	// - Face recognition Python libraries via CGO
-	// - Cloud services like AWS Rekognition, Azure Face API, etc.
-
-	// For now, we'll simulate face comparison
-	score := s.simulateFaceComparison(idCardImagePath, selfieImagePath)
-
-	result := &FaceMatchResult{
-		Score: score,
-		Match: score >= 0.8, // 80% threshold for match
+// CompareFaces compares two face images using HOG features
+func (f *FaceRecognitionService) CompareFaces(idCardImagePath, selfieImagePath string) (*FaceMatchResult, error) {
+	// Validate input images
+	if err := f.ValidateImage(idCardImagePath); err != nil {
+		return &FaceMatchResult{Score: 0, Status: "error", Match: false},
+			fmt.Errorf("ID card image validation failed: %v", err)
 	}
 
-	if score >= 0.8 {
+	if err := f.ValidateImage(selfieImagePath); err != nil {
+		return &FaceMatchResult{Score: 0, Status: "error", Match: false},
+			fmt.Errorf("selfie image validation failed: %v", err)
+	}
+
+	// Extract HOG features from both images
+	fmt.Println("Extracting features from ID card image...")
+	idCardFeatures, err := f.hogDetector.ExtractHOGFeatures(idCardImagePath)
+	if err != nil {
+		return &FaceMatchResult{Score: 0, Status: "error", Match: false},
+			fmt.Errorf("failed to extract features from ID card: %v", err)
+	}
+
+	fmt.Println("Extracting features from selfie image...")
+	selfieFeatures, err := f.hogDetector.ExtractHOGFeatures(selfieImagePath)
+	if err != nil {
+		return &FaceMatchResult{Score: 0, Status: "error", Match: false},
+			fmt.Errorf("failed to extract features from selfie: %v", err)
+	}
+
+	// Compare features using HOG detector
+	confidence := f.hogDetector.CompareFaceFeatures(idCardFeatures, selfieFeatures)
+
+	// Determine match status based on confidence threshold
+	matchThreshold := 0.75 // 75% similarity threshold
+	lowThreshold := 0.5    // 50% minimum for no_match vs error
+
+	result := &FaceMatchResult{
+		Score: confidence,
+		Match: confidence >= matchThreshold,
+	}
+
+	if confidence >= matchThreshold {
 		result.Status = "match"
-	} else if score >= 0.5 {
+	} else if confidence >= lowThreshold {
 		result.Status = "no_match"
 	} else {
 		result.Status = "error"
 	}
 
+	fmt.Printf("Face recognition result: Match=%v, Confidence=%.2f, Status=%s\n",
+		result.Match, result.Score, result.Status)
+
 	return result, nil
 }
 
-// simulateFaceComparison simulates face comparison for demo purposes
-func (s *FaceRecognitionService) simulateFaceComparison(idCardPath, selfiePath string) float64 {
-	// Simulate processing by generating a realistic score
-	// In real implementation, this would be actual face comparison
-
-	// Generate a score between 0.3 and 0.95
-	baseScore := 0.3 + rand.Float64()*0.65
-
-	// Add some "realistic" variation based on file names
-	if len(idCardPath) > 0 && len(selfiePath) > 0 {
-		// Simple hash-like calculation for consistency
-		hash := float64((len(idCardPath) + len(selfiePath)) % 100)
-		variation := (hash / 100.0) * 0.2 // ±10% variation
-		baseScore += variation - 0.1
+func (f *FaceRecognitionService) ExtractFaceFeatures(imagePath string) ([]float64, error) {
+	if err := f.ValidateImage(imagePath); err != nil {
+		return nil, fmt.Errorf("image validation failed: %v", err)
 	}
 
-	// Ensure score is within valid range
-	return math.Max(0.0, math.Min(1.0, baseScore))
-}
-
-// ExtractFaceFeatures extracts face features from an image (placeholder)
-func (s *FaceRecognitionService) ExtractFaceFeatures(imagePath string) ([]float64, error) {
-	// In real implementation, this would extract face embeddings/features
-	// For simulation, return dummy features
-	features := make([]float64, 128) // Common face embedding size
-	for i := range features {
-		features[i] = rand.Float64()
+	fmt.Printf("Extracting HOG features from: %s\n", imagePath)
+	features, err := f.hogDetector.ExtractHOGFeatures(imagePath)
+	if err != nil {
+		return nil, fmt.Errorf("feature extraction failed: %v", err)
 	}
+
+	fmt.Printf("Extracted %d features\n", len(features))
 	return features, nil
 }
 
+func (f *FaceRecognitionService) DetectFaces(imagePath string) (int, error) {
+	if err := f.ValidateImage(imagePath); err != nil {
+		return 0, fmt.Errorf("image validation failed: %v", err)
+	}
+
+	fmt.Printf("Detecting faces in: %s\n", imagePath)
+	faces, err := f.hogDetector.DetectFaces(imagePath)
+	if err != nil {
+		return 0, fmt.Errorf("face detection failed: %v", err)
+	}
+
+	fmt.Printf("Detected %d faces\n", len(faces))
+	return len(faces), nil
+}
+
+func (f *FaceRecognitionService) GetFaceRectangles(imagePath string) ([]image.Rectangle, error) {
+	if err := f.ValidateImage(imagePath); err != nil {
+		return nil, fmt.Errorf("image validation failed: %v", err)
+	}
+
+	return f.hogDetector.DetectFaces(imagePath)
+}
+
+func (f *FaceRecognitionService) ValidateImage(imagePath string) error {
+	if imagePath == "" {
+		return errors.New("image path cannot be empty")
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(imagePath); os.IsNotExist(err) {
+		return fmt.Errorf("image file does not exist: %s", imagePath)
+	}
+
+	// Try to decode the image to validate format
+	_, err := f.hogDetector.imageProcessor.LoadImage(imagePath)
+	if err != nil {
+		return fmt.Errorf("invalid image format or corrupted file: %v", err)
+	}
+
+	return nil
+}
+
 // ValidateImageQuality checks if the image is suitable for face recognition
-func (s *FaceRecognitionService) ValidateImageQuality(imagePath string) (bool, string) {
-	// In real implementation, check for:
-	// - Face detectability
-	// - Image brightness/contrast
-	// - Blur detection
-	// - Face angle/pose
-	// - Image resolution
+func (f *FaceRecognitionService) ValidateImageQuality(imagePath string) (bool, string) {
+	if err := f.ValidateImage(imagePath); err != nil {
+		return false, fmt.Sprintf("Image validation failed: %v", err)
+	}
 
-	// For simulation
-	return true, "Image quality is acceptable"
-}
-
-// DetectFaces detects number of faces in the image
-func (s *FaceRecognitionService) DetectFaces(imagePath string) (int, error) {
-	// In real implementation, use face detection algorithms
-	// For simulation, assume 1 face detected
-	return 1, nil
-}
-
-// Real implementation example (commented out):
-/*
-import (
-	"github.com/Kagami/go-face"
-	"gocv.io/x/gocv"
-)
-
-func (s *FaceRecognitionService) realFaceComparison(idCardPath, selfiePath string) (*FaceMatchResult, error) {
-	// Using go-face library example
-	rec, err := face.NewRecognizer("models")
+	// Detect faces to validate quality
+	faceCount, err := f.DetectFaces(imagePath)
 	if err != nil {
-		return nil, err
-	}
-	defer rec.Close()
-
-	// Process ID card image
-	idFaces, err := rec.RecognizeFile(idCardPath)
-	if err != nil {
-		return nil, err
+		return false, fmt.Sprintf("Face detection failed: %v", err)
 	}
 
-	// Process selfie image
-	selfieFaces, err := rec.RecognizeFile(selfiePath)
-	if err != nil {
-		return nil, err
+	if faceCount == 0 {
+		return false, "No faces detected in the image"
 	}
 
-	if len(idFaces) == 0 || len(selfieFaces) == 0 {
-		return &FaceMatchResult{
-			Score:  0.0,
-			Status: "error",
-			Match:  false,
-		}, nil
+	if faceCount > 1 {
+		return false, "Multiple faces detected, please use image with single face"
 	}
 
-	// Compare face descriptors
-	distance := face.Distance(idFaces[0].Descriptor, selfieFaces[0].Descriptor)
-	similarity := 1.0 - distance
-
-	return &FaceMatchResult{
-		Score:  similarity,
-		Status: "match",
-		Match:  similarity >= 0.8,
-	}, nil
+	return true, "Image quality is acceptable for face recognition"
 }
-*/
