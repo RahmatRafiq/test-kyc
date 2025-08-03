@@ -174,4 +174,7 @@ func RegisterRoutes(route *gin.Engine) {
 			"connections":    health,
 		})
 	})
+
+	// Test OCR endpoint (public, no auth required)
+	route.GET("/test/ocr", kycController.TestOCR)
 }

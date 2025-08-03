@@ -322,3 +322,31 @@ func (c *KycController) ProcessVerification(ctx *gin.Context) {
 		Reference: idStr,
 	}, http.StatusOK)
 }
+
+// TestOCR endpoint untuk testing OCR dengan file yang sudah ada
+func (c *KycController) TestOCR(ctx *gin.Context) {
+	// Test dengan file yang ada
+	imagePath := "/home/rahmat/golang-project/test-kyc/storage/kyc/1/idcard_2_KYC-01987103-bc3a-723f-bff6-b0c88145d49c.jpeg"
+	
+	// Panggil OCR service
+	ocrService := &services.OcrService{}
+	result, confidence, err := ocrService.ExtractTextFromIdCard(imagePath, "ktp")
+	
+	if err != nil {
+		helpers.ResponseError(ctx, &helpers.ResponseParams[any]{
+			Errors:    map[string]string{"error": err.Error()},
+			Message:   "Gagal memproses OCR",
+			Reference: "OCR-TEST-ERROR",
+		}, http.StatusBadRequest)
+		return
+	}
+
+	helpers.ResponseSuccess(ctx, &helpers.ResponseParams[map[string]interface{}]{
+		Item: &map[string]interface{}{
+			"ocr_result": result,
+			"confidence": confidence,
+		},
+		Message:   "OCR test berhasil",
+		Reference: "OCR-TEST-SUCCESS",
+	}, http.StatusOK)
+}

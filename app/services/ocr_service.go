@@ -23,16 +23,9 @@ type TextRegion struct {
 
 // ExtractTextFromIdCard performs OCR on ID card image
 func (*OcrService) ExtractTextFromIdCard(imagePath string, idCardType string) (*responses.ExtractedData, float64, error) {
-	// Load and validate image
-	img, err := loadImage(imagePath)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to load image: %v", err)
-	}
-
-	// Process OCR with improved algorithm
-	extractedData, confidence := processOCR(img, idCardType)
-
-	return extractedData, confidence, nil
+	// Use the new refactored OCR service for better results
+	newOcrService := NewOcrServiceInstance()
+	return newOcrService.ExtractTextFromIdCardV2(imagePath, idCardType)
 }
 
 // loadImage loads and decodes image from file path
